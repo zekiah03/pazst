@@ -1,0 +1,30 @@
+export type AxisKey =
+  | 'recognition'
+  | 'love'
+  | 'safety'
+  | 'freedom'
+  | 'order'
+  | 'achievement'
+  | 'expression'
+  | 'belonging'
+  | 'fairness'
+  | 'trust';
+
+export interface Choice {
+  text: string;
+  scores: Partial<Record<AxisKey, number>>;
+}
+
+export interface Question {
+  id: number;
+  text: string;
+  choices: Choice[];
+}
+
+export interface AxisResult {
+  key: AxisKey;
+  label: string;
+  score: number; // 0-100
+  level: 'high' | 'mid' | 'low';
+  text: string;
+}
