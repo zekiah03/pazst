@@ -21,6 +21,27 @@ export default function ResultPage() {
     setResults(computeResults(answers));
   }, [router]);
 
+  const handleDownload = () => {
+    if (!results) return;
+    const payload = {
+      generatedAt: new Date().toISOString(),
+      axes: results.map((r) => ({
+        key: r.key,
+        label: r.label,
+        score: r.score,
+        level: r.level,
+        interpretation: r.text,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'past-inference-result.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (!results) return null;
 
   return (
@@ -49,7 +70,13 @@ export default function ResultPage() {
 
         <ResultText results={results} />
 
-        <div className="text-center mt-12">
+        <div className="flex justify-center gap-4 mt-12 flex-wrap">
+          <button
+            onClick={handleDownload}
+            className="px-6 py-2.5 rounded-full bg-indigo-600/20 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/40 hover:border-indigo-400 transition-colors text-sm"
+          >
+            結果をJSONで保存
+          </button>
           <button
             onClick={() => router.push('/')}
             className="px-6 py-2.5 rounded-full border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors text-sm"
