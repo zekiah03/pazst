@@ -3,14 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { computeResults } from '@/lib/scoring';
-import { contributeToTwin } from '@/lib/contribute';
-import { AxisResult } from '@/lib/types';
+import { DiagnosisResult } from '@/lib/types';
 import ResultChart from '@/components/ResultChart';
 import ResultText from '@/components/ResultText';
+import ProfileCard from '@/components/ProfileCard';
+import ContradictionCard from '@/components/ContradictionCard';
+import { contributeToTwin } from '@/lib/twin';
 
 export default function ResultPage() {
   const router = useRouter();
-  const [results, setResults] = useState<AxisResult[] | null>(null);
+  const [result, setResult] = useState<DiagnosisResult | null>(null);
 
   useEffect(() => {
     const raw = sessionStorage.getItem('answers');
@@ -19,18 +21,27 @@ export default function ResultPage() {
       return;
     }
     const answers = JSON.parse(raw) as number[];
-    const r = computeResults(answers);
-    setResults(r);
+    const computed = computeResults(answers);
+    setResult(computed);
     contributeToTwin('pazst', {
-      axes: r.map((a) => ({ key: a.key, label: a.label, score: a.score, level: a.level })),
+      profileType: computed.profile.id,
+      axes: Object.fromEntries(computed.axes.map((a) => [a.key, a.score])),
+      contradictions: computed.contradictions as unknown as Record<string, unknown>[],
     });
   }, [router]);
 
   const handleDownload = () => {
-    if (!results) return;
+    if (!result) return;
     const payload = {
       generatedAt: new Date().toISOString(),
-      axes: results.map((r) => ({
+      profileType: {
+        id: result.profile.id,
+        name: result.profile.name,
+        tagline: result.profile.tagline,
+      },
+      overallSummary: result.overallSummary,
+      contradictions: result.contradictions,
+      axes: result.axes.map((r) => ({
         key: r.key,
         label: r.label,
         score: r.score,
@@ -47,35 +58,48 @@ export default function ResultPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (!results) return null;
+  if (!result) return null;
 
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-16">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-12">
+      <div className="max-w-2xl mx-auto space-y-6">
+
+        {/* ヘッダー */}
+        <div className="text-center mb-8">
           <p className="text-indigo-400 text-sm tracking-widest mb-3 uppercase">Past Inference</p>
-          <h1 className="text-2xl font-light text-slate-100">
-            あなたの過去の推測
-          </h1>
+          <h1 className="text-2xl font-light text-slate-100">あなたの過去の推測</h1>
           <p className="text-slate-500 text-sm mt-3">
             回答パターンから、あなたが育った環境を読み解きました。
           </p>
         </div>
 
-        <div className="bg-slate-900/60 rounded-2xl border border-slate-800 p-6 mb-8">
-          <p className="text-slate-400 text-xs text-center mb-4 uppercase tracking-wider">感情の渇望マップ</p>
-          <ResultChart results={results} />
-          <div className="flex justify-center gap-6 mt-4 text-xs text-slate-500">
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-0.5 bg-indigo-400 inline-block rounded" />
-              スコアが高い＝強く求めている（過去になかった）
-            </span>
-          </div>
+        {/* プロファイルタイプ */}
+        <ProfileCard profile={result.profile} />
+
+        {/* レーダーチャート */}
+        <div className="bg-slate-900/60 rounded-2xl border border-slate-800 p-6">
+          <p className="text-slate-400 text-xs text-center mb-4 uppercase tracking-wider">
+            感情の渇望マップ
+          </p>
+          <ResultChart results={result.axes} />
+          <p className="text-center text-xs text-slate-500 mt-4">
+            スコアが高い＝強く求めている（過去になかった可能性）
+          </p>
         </div>
 
-        <ResultText results={results} />
+        {/* 逆説パターン（あれば） */}
+        <ContradictionCard contradictions={result.contradictions} />
 
-        <div className="flex justify-center gap-4 mt-12 flex-wrap">
+        {/* 軸別詳細 */}
+        <div>
+          <p className="text-slate-400 text-xs uppercase tracking-wider mb-4">
+            10軸の詳細分析
+          </p>
+          <ResultText results={result.axes} />
+        </div>
+
+        {/* アクションボタン */}
+        <div className="flex justify-center gap-4 pt-6 flex-wrap">
           <button
             onClick={handleDownload}
             className="px-6 py-2.5 rounded-full bg-indigo-600/20 border border-indigo-500/50 text-indigo-300 hover:bg-indigo-600/40 hover:border-indigo-400 transition-colors text-sm"
@@ -89,6 +113,7 @@ export default function ResultPage() {
             もう一度やってみる
           </button>
         </div>
+
       </div>
     </main>
   );
