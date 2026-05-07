@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { computeResults } from '@/lib/scoring';
+import { contributeToTwin } from '@/lib/contribute';
 import { AxisResult } from '@/lib/types';
 import ResultChart from '@/components/ResultChart';
 import ResultText from '@/components/ResultText';
@@ -18,7 +19,11 @@ export default function ResultPage() {
       return;
     }
     const answers = JSON.parse(raw) as number[];
-    setResults(computeResults(answers));
+    const r = computeResults(answers);
+    setResults(r);
+    contributeToTwin('pazst', {
+      axes: r.map((a) => ({ key: a.key, label: a.label, score: a.score, level: a.level })),
+    });
   }, [router]);
 
   const handleDownload = () => {
