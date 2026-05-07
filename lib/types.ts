@@ -28,3 +28,23 @@ export interface AxisResult {
   level: 'high' | 'mid' | 'low';
   text: string;
 }
+
+export interface ProfileType {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  primaryAxes: AxisKey[];
+}
+
+export interface ContradictionInsight {
+  title: string;
+  text: string;
+}
+
+export interface DiagnosisResult {
+  axes: AxisResult[];
+  profile: ProfileType;
+  contradictions: ContradictionInsight[];
+  overallSummary: string;
+}
