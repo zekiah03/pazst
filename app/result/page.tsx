@@ -8,6 +8,7 @@ import ResultChart from '@/components/ResultChart';
 import ResultText from '@/components/ResultText';
 import ProfileCard from '@/components/ProfileCard';
 import ContradictionCard from '@/components/ContradictionCard';
+import { contributeToTwin } from '@/lib/contribute';
 
 export default function ResultPage() {
   const router = useRouter();
@@ -20,7 +21,16 @@ export default function ResultPage() {
       return;
     }
     const answers = JSON.parse(raw) as number[];
-    setResult(computeResults(answers));
+    const r = computeResults(answers);
+    setResult(r);
+    if (!sessionStorage.getItem('pazst_contributed')) {
+      sessionStorage.setItem('pazst_contributed', '1');
+      contributeToTwin('pazst', {
+        profileId: r.profile.id,
+        profileName: r.profile.name,
+        axes: r.axes.map(a => ({ key: a.key, score: a.score, level: a.level })),
+      });
+    }
   }, [router]);
 
   const handleDownload = () => {
@@ -57,7 +67,6 @@ export default function ResultPage() {
     <main className="min-h-screen bg-slate-950 px-6 py-16">
       <div className="max-w-2xl mx-auto space-y-6">
 
-        {/* ヘッダー */}
         <div className="text-center mb-8">
           <p className="text-indigo-400 text-sm tracking-widest mb-3 uppercase">Past Inference</p>
           <h1 className="text-2xl font-light text-slate-100">あなたの過去の推測</h1>
@@ -66,10 +75,8 @@ export default function ResultPage() {
           </p>
         </div>
 
-        {/* プロファイルタイプ */}
         <ProfileCard profile={result.profile} />
 
-        {/* レーダーチャート */}
         <div className="bg-slate-900/60 rounded-2xl border border-slate-800 p-6">
           <p className="text-slate-400 text-xs text-center mb-4 uppercase tracking-wider">
             感情の渇望マップ
@@ -80,10 +87,8 @@ export default function ResultPage() {
           </p>
         </div>
 
-        {/* 逆説パターン（あれば） */}
         <ContradictionCard contradictions={result.contradictions} />
 
-        {/* 軸別詳細 */}
         <div>
           <p className="text-slate-400 text-xs uppercase tracking-wider mb-4">
             10軸の詳細分析
@@ -91,7 +96,6 @@ export default function ResultPage() {
           <ResultText results={result.axes} />
         </div>
 
-        {/* アクションボタン */}
         <div className="flex justify-center gap-4 pt-6 flex-wrap">
           <button
             onClick={handleDownload}
